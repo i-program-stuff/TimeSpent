@@ -4,7 +4,7 @@ use crate::globals;
 use serde_json::{json, Value as JsonValue};
 
 use eframe::egui;
-use egui_extras::{TableBuilder, Size, TableRow};
+use egui_extras::{Column, TableBuilder, TableRow};
 
 use crate::TimeSpent;
 
@@ -55,9 +55,9 @@ impl TimeSpent {
 	pub fn draw_table(&mut self, ui: &mut egui::Ui) {
 		TableBuilder::new(ui)
 		.cell_layout(egui::Layout::left_to_right(egui::Align::Center))
-		.column(Size::initial(200.))
-		.column(Size::initial(140.))
-		.column(Size::remainder())
+		.column(Column::initial(200.).clip(true))
+		.column(Column::initial(140.).clip(true))
+		.column(Column::remainder())
 		.resizable(true)
 		.striped(true)
 

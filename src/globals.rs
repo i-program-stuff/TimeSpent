@@ -1,5 +1,9 @@
+// Functions used by both the GUI and the Daemon, so it has to be in a separate file. 
+
 use chrono::offset::Local;
 use std::{path::PathBuf, io::Write};
+
+mod storage;
 
 #[macro_export]
 macro_rules! log {

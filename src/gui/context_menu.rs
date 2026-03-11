@@ -39,12 +39,12 @@ impl TimeSpent {
 	
 			if ui.button("More Info").clicked() {
 				open_window!(self.win.status_window, self.win.status_data, data);
-				ui.close_menu();
+				ui.close();
 			}
 	
 			if ui.button("Rename").clicked() {
 				open_window!(self.win.rename_window, self.win.rename_data, data);
-				ui.close_menu();
+				ui.close();
 			}
 			
 			if ui.button(hide_button_text).clicked() {
@@ -65,21 +65,21 @@ impl TimeSpent {
 					},
 				}
 	
-				ui.close_menu();
+				ui.close();
 			}
 	
 			if ui.button("Delete").clicked() {
 				open_window!(self.win.delete_window, self.win.delete_data, data);
-				ui.close_menu();
+				ui.close();
 			}
 	
 			if ui.button("Show Raw Data").clicked() {
 				open_window!(self.win.raw_data_window, self.win.raw_data, data);
-				ui.close_menu();
+				ui.close();
 			}
 	
 			if ui.button("Close the Menu").clicked() {
-				ui.close_menu();
+				ui.close();
 			}
 		});
 

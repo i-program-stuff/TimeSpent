@@ -25,7 +25,7 @@ impl TimeSpent {
 								data["exeLocation"].as_str().unwrap_or("null")
 								
 						).monospace()
-					).wrap(true)
+					).wrap()
 				);
 
 			});

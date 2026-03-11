@@ -1,6 +1,6 @@
-mod statuswindow;
-mod renamewindow;
-mod deletewindow;
+mod status_window;
+mod rename_window;
+mod delete_window;
 
 use eframe::egui;
 

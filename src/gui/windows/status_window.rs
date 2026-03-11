@@ -1,16 +1,17 @@
-use eframe::{egui, egui::widgets::plot};
+use eframe::egui;
+use egui_plot as plot;
 
 use crate::TimeSpent;
 
 impl TimeSpent {
 	pub fn draw_status_window(&mut self, ctx: &egui::Context) {
 		egui::Window::new("Status").open(&mut self.win.status_window)
-		.vscroll(true) .show(ctx, |ui| {
+		.resizable(true).show(ctx, |ui| {
 			let status_data = self.win.status_data["perDayTimeRun"]
 							  .as_object().unwrap();
 
 			ui.horizontal(|ui| {
-				ui.set_min_width(180.);
+				ui.set_min_width(220.);
 
 				ui.label("Executable path: ");
 
@@ -22,7 +23,7 @@ impl TimeSpent {
 							.as_str().unwrap_or("null")
 							
 						).monospace()
-					).wrap(true)
+					).wrap()
 				);
 
 			});
@@ -45,7 +46,7 @@ impl TimeSpent {
 				);
 			}
 
-			let bar_chart = plot::BarChart::new(bar_data.clone())
+			let bar_chart = plot::BarChart::new("Time", bar_data.clone())
 							.color(egui::Color32::LIGHT_BLUE);
 
 			ui.collapsing("Time Graph", |ui| {
@@ -54,10 +55,11 @@ impl TimeSpent {
 
 				plot::Plot::new(self.win.status_data["name"].to_string())
 				.show_x(false)
+				.show_axes(false)
 				.allow_boxed_zoom(false)
 				.y_axis_formatter(|i, _| {
-					if i > 0. {
-						format!("{} minutes", i)
+					if i.value > 0. {
+						format!("{} minutes", i.value)
 					} else {
 						String::new()
 					}

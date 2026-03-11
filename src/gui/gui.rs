@@ -5,7 +5,7 @@ mod globals;
 mod utils;
 mod table;
 mod windows;
-mod contextmenu;
+mod context_menu;
 
 use std::path::PathBuf;
 
@@ -63,7 +63,7 @@ impl TimeSpent {
 				}
 
 				ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-					egui::widgets::global_dark_light_mode_buttons(ui);
+					egui::widgets::global_theme_preference_buttons(ui);
 				});
 			});
 		});
@@ -74,10 +74,10 @@ impl eframe::App for TimeSpent {
 	fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
 		egui::CentralPanel::default().show(ctx, |ui| {
 
-			egui::Frame::none()
-				.outer_margin(egui::style::Margin {
-					left: 0., right: 0.,
-					top: 0., bottom: 25.,
+			egui::Frame::NONE
+				.outer_margin(egui::Margin {
+					left: 0, right: 0,
+					top: 0, bottom: 25,
 				})
 				.show(ui, |ui| {
 					self.draw_table(ui);
@@ -101,7 +101,7 @@ impl eframe::App for TimeSpent {
 	}
 }
 
-fn main() {
+fn main() -> eframe::Result {
 	let icon_data = include_bytes!("../../imgs/hummingbird_new.ico");
 
 	let icon = image::load_from_memory_with_format(
@@ -109,18 +109,32 @@ fn main() {
 	).expect("Could not load icon").blur(3.5).to_rgba8();
 
 
-	let mut win_opts = eframe::NativeOptions::default();
-	win_opts.initial_window_size = Some(egui::Vec2::new(550., 560.));
-	win_opts.resizable = true;
-	win_opts.default_theme = win_opts.system_theme()
-							 .unwrap_or(eframe::Theme::Dark);
-	win_opts.icon_data = Some(eframe::IconData {
-		width: icon.width(),
-		height: icon.height(),
+	let viewport = egui::viewport::ViewportBuilder::default()
+		.with_title("Time Spent")
+		.with_inner_size(egui::Vec2::new(550., 560.))
+		.with_resizable(true)
+		.with_icon(egui::viewport::IconData {
+			width: icon.width(),
+			height: icon.height(),
+			
+			rgba: icon.into_raw(),
+		});
+
+	let win_opts = eframe::NativeOptions {
+		viewport,
+		..Default::default()
+	};
+	// win_opts.initial_window_size = Some(egui::Vec2::new(550., 560.));
+	// win_opts.resizable = true;
+	// win_opts.default_theme = win_opts.system_theme()
+	// 						 .unwrap_or(eframe::Theme::Dark);
+	// win_opts.icon_data = Some(eframe::IconData {
+	// 	width: icon.width(),
+	// 	height: icon.height(),
 		
-		rgba: icon.into_raw(),
-	});
+	// 	rgba: icon.into_raw(),
+	// });
 
 	eframe::run_native("Time Spent", win_opts,
-		Box::new(|_cc| Box::new(TimeSpent::new())));
+		Box::new(|_cc| Ok(Box::new(TimeSpent::new()))))
 }
