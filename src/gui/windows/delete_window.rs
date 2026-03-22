@@ -1,14 +1,13 @@
 use eframe::egui;
 
 use crate::TimeSpent;
+use crate::shared::tracker;
 
 impl TimeSpent {
 	pub fn draw_delete_window(&mut self, ctx: &egui::Context) {
 		egui::Window::new("Delete").show(ctx, |ui| {
-			let data = self.win.delete_data.clone();
-
 			ui.heading(
-				format!("Are you sure that you want to delete {}?", data["friendlyName"])
+				format!("Are you sure that you want to delete {}?", self.win.delete_data.name)
 			);
 			
 			ui.add_space(1.);
@@ -21,9 +20,7 @@ impl TimeSpent {
 				ui.add(
 					egui::Label::new(
 						egui::RichText::new(
-
-								data["exeLocation"].as_str().unwrap_or("null")
-								
+								self.win.delete_data.path.clone()
 						).monospace()
 					).wrap()
 				);
@@ -41,14 +38,7 @@ impl TimeSpent {
 
 			ui.horizontal(|ui| {
 				if ui.button(egui::RichText::new("Delete").size(16.)).clicked() {
-					let filename = format!("{}.json", 
-						data["name"].as_str().unwrap());
-					
-					let fullpath = &self.processes_dir.join(filename);
-
-					if let Err(e) = std::fs::remove_file(fullpath) {
-						crate::log!("Couldn't delete {} ({})", data["name"], e);
-					}
+					tracker::remove_entry(&self.win.delete_data.key);
 
 					self.refresh();
 					self.win.delete_window = false;

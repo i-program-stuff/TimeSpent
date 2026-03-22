@@ -1,16 +1,13 @@
 use eframe::egui;
-use serde_json::json;
 
 use crate::TimeSpent;
+use crate::shared::tracker;
 
 impl TimeSpent {
 	pub fn draw_rename_window(&mut self, ctx: &egui::Context) {
 		egui::Window::new("Rename").show(ctx, |ui| {
-			let mut rename_data = self.win.rename_data.clone();
-
 			ui.heading(
-				format!("What should {} be renamed to?", 
-						rename_data["friendlyName"])
+				format!("What should {} be renamed to?", self.win.rename_data.name)
 			);
 
 			ui.add_space(3.);		
@@ -40,20 +37,10 @@ impl TimeSpent {
 
 			ui.horizontal(|ui| {
 				if ui.button("Rename").clicked() && self.win.rename_error.is_empty() {
-					let filename = format!("{}.json", 
-						rename_data["name"].as_str().unwrap());
-	
-					let fullpath = &self.processes_dir.join(filename);
-	
-					rename_data["friendlyName"] = json!(self.win.rename_to);
+					tracker::change_entry_name(
+						&self.win.rename_data.key, self.win.rename_to.clone()
+					);
 
-					if let Err(e) = std::fs::write(&fullpath, 
-									rename_data.to_string().as_bytes()) {
-
-						crate::log!("{:?} Could not be written ({})", fullpath, e);
-					}
-
-					
 					self.refresh();
 					self.win.rename_to = String::new();
 

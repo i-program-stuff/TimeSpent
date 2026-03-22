@@ -1,11 +1,13 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-#[path = "../globals.rs"]
-mod globals;
+#[path = "../shared.rs"]
+mod shared;
 mod write;
 
-use std::{thread, fs, process, path::Path, time::Duration};
-use sysinfo::{self, SystemExt, PidExt, ProcessExt};
+use shared::tracker;
+
+use std::{thread, process, path::Path, time::Duration};
+use sysinfo::{SystemExt, PidExt, ProcessExt};
 
 #[cfg(target_os = "windows")]
 fn get_pid() -> u32 {
@@ -43,41 +45,26 @@ fn get_pid() -> u32 {
 	return pid
 }
 
-fn get_focused_application(system: &sysinfo::System) -> (String, &Path) {
-
-	let pid = get_pid(); 
-
+fn get_focused_application_from_pid(system: &sysinfo::System, pid: u32) -> &Path {
 	if let Some(process) = system.process(sysinfo::Pid::from_u32(pid)) {
-		return (process.name().to_string(), process.exe())
-		
+		return process.exe()
 	}
 
-	return ("Idle".to_string(), Path::new("/"))
+	return Path::new("/")
 }
 
 fn main() {
-	let file_dirs = globals::Dirs::new();
-	let processes_dir = file_dirs.processes_dir;
-	let config_file = file_dirs.daemon_config;
+	let file_dirs = shared::Dirs::new();
+	// let config_file = file_dirs.daemon_config;
 
-	if !processes_dir.is_dir() {
-		if let Err(e) = fs::create_dir_all(&processes_dir) {
-			log!("Could not create {:?} ({})", processes_dir, e);
+	// let config = match write::get_config(&config_file) {
+	// 	Ok(json) => json,
 
-			process::exit(1);
-		}
-
-		log!("Created {:?}", processes_dir);
-	}
-	
-	let config = match write::get_config(&config_file) {
-		Ok(json) => json,
-
-		Err(e) => {
-			log!("Couldn't write Config ({})", e);
-			write::get_default_config()
-		}
-	};
+	// 	Err(e) => {
+	// 		log!("Couldn't write Config ({})", e);
+	// 		write::get_default_config()
+	// 	}
+	// };
 
 	// Make sysinfo only refresh the process list
 	let only_processes = sysinfo::ProcessRefreshKind::new();
@@ -91,16 +78,36 @@ fn main() {
 		process::exit(1);
 	}
 
-	loop {
-		system.refresh_processes_specifics(only_processes);
-		let (name, exe) = get_focused_application(&system);
+	let flush_delta = 10000;
 
-		if let Err(e) = write::set_json_data(name, exe, &processes_dir, &config) {
-			log!("Couldn't write json ({})", e);
+	let mut tracker = tracker::Tracker::new(flush_delta);
+
+	let poll_interval = Duration::from_secs(1);
+
+	let mut last_pid = 0;
+	let mut exe = Path::new("/");
+
+	loop {
+		if file_dirs.unlock_file.exists() {
+			tracker.flush();
+			drop(tracker);
+
+			while file_dirs.unlock_file.exists() {
+				thread::sleep(poll_interval);
+			}
+
+			tracker = tracker::Tracker::new(flush_delta);
 		}
 
-		thread::sleep( 
-			Duration::from_secs( config["tickSpeed"].as_u64().unwrap_or(1) ) 
-		);
+		let pid = get_pid();
+		if last_pid != pid {
+			system.refresh_processes_specifics(only_processes);
+			exe = get_focused_application_from_pid(&system, pid);
+			last_pid = pid;
+		}
+
+		tracker.add_time(&exe.to_path_buf(), poll_interval.as_secs());
+
+		thread::sleep(poll_interval);
 	}
 }

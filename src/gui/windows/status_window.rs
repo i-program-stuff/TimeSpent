@@ -7,8 +7,7 @@ impl TimeSpent {
 	pub fn draw_status_window(&mut self, ctx: &egui::Context) {
 		egui::Window::new("Status").open(&mut self.win.status_window)
 		.resizable(true).show(ctx, |ui| {
-			let status_data = self.win.status_data["perDayTimeRun"]
-							  .as_object().unwrap();
+			let status_data = &self.win.status_data.per_day_time;
 
 			ui.horizontal(|ui| {
 				ui.set_min_width(220.);
@@ -18,10 +17,7 @@ impl TimeSpent {
 				ui.add(
 					egui::Label::new(
 						egui::RichText::new(
-
-							self.win.status_data["exeLocation"]
-							.as_str().unwrap_or("null")
-							
+							self.win.status_data.path.clone()
 						).monospace()
 					).wrap()
 				);
@@ -32,14 +28,14 @@ impl TimeSpent {
 
 			let mut bar_data: Vec<plot::Bar> = Vec::new();
 			for (i, d) in status_data.iter().enumerate() {
-				let time = d.1.as_f64().unwrap();
+				let time = *d.1 as f64;
 
 				bar_data.push(
 					plot::Bar::new(
 						i as f64 + 0.5,
 						time / 60., // Convert to minutes
 					)	
-					.name(format!("{}on {}", // d.0 is the date
+					.name(format!("{} on {}", // d.0 is the date
 						crate::utils::format_time(time), d.0
 					))
 					.width(0.95)
@@ -53,7 +49,7 @@ impl TimeSpent {
 				ui.monospace("X: Days");
 				ui.monospace("Y: Time in Minutes");
 
-				plot::Plot::new(self.win.status_data["name"].to_string())
+				plot::Plot::new(self.win.status_data.name.clone())
 				.show_x(false)
 				.show_axes(false)
 				.allow_boxed_zoom(false)

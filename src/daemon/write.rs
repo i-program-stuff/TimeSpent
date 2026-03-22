@@ -77,7 +77,7 @@ pub fn set_json_data(name: String, exe_dir: &Path, json_dir: &Path, config: &Jso
 	info["totalTimeRun"] = json!(info["totalTimeRun"].as_u64().unwrap() + tick_speed);
 
 	// perDayTimeRun
-	let today = crate::globals::get_date();
+	let today = crate::shared::get_todays_date();
 
 	if info["perDayTimeRun"].get(&today).is_none() {
 		info["perDayTimeRun"][&today] = json!(0);

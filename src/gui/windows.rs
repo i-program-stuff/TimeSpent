@@ -1,3 +1,5 @@
+// Deals with the windows of the GUI and the data used by them.
+
 mod status_window;
 mod rename_window;
 mod delete_window;
@@ -5,20 +7,21 @@ mod delete_window;
 use eframe::egui;
 
 use crate::TimeSpent;
+use crate::shared::tracker::FormattedProcessEntry;
 
 #[derive(Default)]
 pub struct Window {
 	pub status_window: bool,
-	pub status_data: serde_json::Value,
+	pub status_data: FormattedProcessEntry,
 
 	pub raw_data_window: bool,
-	pub raw_data: serde_json::Value,
+	pub raw_data: FormattedProcessEntry,
 
 	pub delete_window: bool,
-	pub delete_data: serde_json::Value,
+	pub delete_data: FormattedProcessEntry,
 
 	pub rename_window: bool,
-	pub rename_data: serde_json::Value,
+	pub rename_data: FormattedProcessEntry,
 	pub rename_to: String,
 	pub rename_error: String,
 }
@@ -27,9 +30,9 @@ impl TimeSpent {
 	pub fn draw_raw_data_window(&mut self, ctx: &egui::Context) {
 		egui::Window::new("Raw Data").open(&mut self.win.raw_data_window)
 		.vscroll(true).show(ctx, |ui| {
-			let json = serde_json::to_string_pretty(&self.win.raw_data);
+			let mut text = format!("{:#?}", self.win.raw_data);
 
-			ui.add( egui::TextEdit::multiline(&mut json.unwrap())
+			ui.add( egui::TextEdit::multiline(&mut text)
 					.code_editor()
 					.interactive(false)
 			)

@@ -1,37 +1,7 @@
 use std::{fs, path::Path};
-use serde_json::Value as JsonValue;
 use crate::log;
 
-pub fn get_info(json_dir: &Path) -> Vec<JsonValue> {
-	let mut data: Vec<JsonValue> = match fs::read_dir(json_dir) {
-		Ok(paths) => {
-			let mut files = Vec::new();
-			
-			for path in paths {
-				let proper_path = path.unwrap().path();
-
-				let content = fs::read_to_string(&proper_path).unwrap();
-					
-				if let Ok(json) = serde_json::from_str(&content) {
-					files.push(json);
-				} else {
-					log!("Could not read {:?}", proper_path);
-				}
-			}
-
-			files
-		},
-
-		Err(_) => Vec::new(),
-	};
-
-	data.sort_by_key(|json| json["totalTimeRun"].as_u64().unwrap());
-	data.reverse();
-
-	return data;
-}
-
-pub fn get_hidden_processes(hidden_processes_file: &Path) -> Vec<JsonValue> {
+pub fn get_hidden_processes(hidden_processes_file: &Path) -> Vec<String> {
 	if !hidden_processes_file.exists() {
 		match fs::write(&hidden_processes_file, "[]".as_bytes()) {
 			Ok(_) => log!("hidden.json Created"),
@@ -50,7 +20,9 @@ pub fn get_hidden_processes(hidden_processes_file: &Path) -> Vec<JsonValue> {
 		},
 	};
 
-	return content.as_array().unwrap().to_vec()
+    return content.as_array().unwrap().iter()
+        .map(|arr| arr.as_str().unwrap_or("").to_string())
+        .collect()
 }
 
 pub fn format_time(time_in_secs: f64) -> String {
@@ -62,12 +34,12 @@ pub fn format_time(time_in_secs: f64) -> String {
 	let time = [days, hours, mins, secs];
 	let time_symbols = ["d", "h", "m", "s"];
 
-	let mut formatted_time = String::new();
+	let mut parts = Vec::new();
 	for (t, l) in time.iter().zip(time_symbols) {
-		if t != &0. {
-			formatted_time.push_str(&format!("{}{} ", t, l));
+		if *t != 0. {
+			parts.push(format!("{}{}", t, l));
 		}
 	}
 
-	return formatted_time
+	parts.join(" ")
 }

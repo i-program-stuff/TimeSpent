@@ -1,6 +1,7 @@
 use serde_json::json;
 
 use crate::TimeSpent;
+use crate::shared::tracker::FormattedProcessEntry;
 
 #[macro_export]
 // Open Window if the process is clicked for the first time
@@ -11,7 +12,7 @@ macro_rules! open_window {
 		$window = $data != &$window_data;
 
 		if &$window_data == $data {
-			$window_data = serde_json::json!({});
+			$window_data = FormattedProcessEntry::default();
 		} else {
 			$window_data = $data.clone();
 		}
@@ -21,10 +22,10 @@ macro_rules! open_window {
 
 impl TimeSpent {
 	pub fn draw_context_menu(&mut self, name: String, 
-		data: &serde_json::Value, ui: &mut eframe::egui::Ui) {
+		data: &FormattedProcessEntry, ui: &mut eframe::egui::Ui) {
 		
 		let hide_button_text = 
-			if self.hidden_processes.contains(&json!(data["name"])) {
+			if self.hidden_processes.contains(&data.name) {
 				"Unhide" 
 			} else {
 				 "Hide" 
@@ -50,10 +51,10 @@ impl TimeSpent {
 			if ui.button(hide_button_text).clicked() {
 				
 				if hide_button_text == "Hide" { 
-					self.hidden_processes.push( json!(data["name"]) );
+					self.hidden_processes.push( data.name.clone() );
 				} else {
 					// Remove that process from the list of hidden processes
-					self.hidden_processes.retain( |x| x != &data["name"] );
+					self.hidden_processes.retain( |x| x != &data.name );
 				}
 				
 				match std::fs::write(&self.hidden_processes_file,
