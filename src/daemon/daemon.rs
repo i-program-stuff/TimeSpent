@@ -2,8 +2,6 @@
 
 #[path = "../shared.rs"]
 mod shared;
-mod write;
-
 use shared::tracker;
 
 use std::{thread, process, path::Path, time::Duration};

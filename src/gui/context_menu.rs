@@ -1,6 +1,6 @@
 use serde_json::json;
 
-use crate::TimeSpent;
+use crate::{TimeSpent, shared};
 use crate::shared::tracker::FormattedProcessEntry;
 
 #[macro_export]
@@ -57,7 +57,7 @@ impl TimeSpent {
 					self.hidden_processes.retain( |x| x != &data.name );
 				}
 				
-				match std::fs::write(&self.hidden_processes_file,
+				match std::fs::write(shared::Dirs::new().hidden_processes,
 					  json!(self.hidden_processes).to_string().as_bytes()) {
 	
 					Ok(_) => {},

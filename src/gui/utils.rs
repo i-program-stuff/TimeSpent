@@ -1,7 +1,9 @@
-use std::{fs, path::Path};
-use crate::log;
+use std::fs;
+use crate::{log, shared};
 
-pub fn get_hidden_processes(hidden_processes_file: &Path) -> Vec<String> {
+pub fn get_hidden_processes() -> Vec<String> {
+	let hidden_processes_file = shared::Dirs::new().hidden_processes;
+
 	if !hidden_processes_file.exists() {
 		match fs::write(&hidden_processes_file, "[]".as_bytes()) {
 			Ok(_) => log!("hidden.json Created"),
@@ -41,5 +43,9 @@ pub fn format_time(time_in_secs: f64) -> String {
 		}
 	}
 
-	parts.join(" ")
+	if parts.is_empty() {
+		return "0s".to_string();
+	}
+
+	return parts.join(" ")
 }

@@ -9,40 +9,34 @@ mod context_menu;
 
 use crate::shared::tracker;
 
-use std::path::PathBuf;
-
 use eframe::egui;
 
 struct TimeSpent {
 	data: Vec<tracker::FormattedProcessEntry>,
 	win: windows::Window,
 
-	hidden_processes_file: PathBuf,
 	hidden_processes: Vec<String>,
 	show_hidden: bool,
 }
 
 impl TimeSpent {
 	fn new() -> Self {
-		let file_dirs = shared::Dirs::new();
-		let hidden_processes_file = file_dirs.hidden_processes;
+		let hidden_processes = utils::get_hidden_processes();
 
-		let hidden_processes = 
-			utils::get_hidden_processes(&hidden_processes_file);
-
-		let data = tracker::get_formatted_data();
+		let mut data = tracker::get_formatted_data();
+		table::sort_data_by(table::SortMethod::PerDayTime, &mut data);
 
 		let win = windows::Window::default();
 
 		return Self { 
-			data, win, hidden_processes_file,
+			data, win,
 			hidden_processes, show_hidden: false
 		}
 	}
 
 	fn refresh(&mut self) {
 		self.hidden_processes = 
-			utils::get_hidden_processes(&self.hidden_processes_file);
+			utils::get_hidden_processes();
 
 		self.data = tracker::get_formatted_data();
 	}
@@ -52,6 +46,10 @@ impl TimeSpent {
 		.show(ctx, |ui| {
 			ui.set_min_width(380.);
 			ui.horizontal_centered(|ui| {
+				if ui.button("Search").clicked() {
+					self.win.search_window = !self.win.search_window;
+				}
+
 				if ui.button("Refresh").clicked() {
 					self.refresh();
 				}
@@ -105,14 +103,9 @@ impl eframe::App for TimeSpent {
 
 			self.draw_raw_data_window(ctx);
 			self.draw_status_window(ctx);
-
-			if self.win.delete_window {
-				self.draw_delete_window(ctx);
-			}
-
-			if self.win.rename_window {
-				self.draw_rename_window(ctx);
-			}
+			self.draw_search_window(ctx);
+			self.draw_delete_window(ctx);
+			self.draw_rename_window(ctx);
 		});
 
 		self.draw_footerbar(ctx);

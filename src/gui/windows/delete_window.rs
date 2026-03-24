@@ -5,12 +5,19 @@ use crate::shared::tracker;
 
 impl TimeSpent {
 	pub fn draw_delete_window(&mut self, ctx: &egui::Context) {
-		egui::Window::new("Delete").show(ctx, |ui| {
+		let mut delete_window = self.win.delete_window;
+		let mut should_open = self.win.delete_window;
+
+		egui::Window::new("Delete").open(&mut delete_window)
+		.show(ctx, |ui| {
 			ui.heading(
-				format!("Are you sure that you want to delete {}?", self.win.delete_data.name)
+				format!(
+					"Are you sure that you want to delete \"{}\"?", 
+					self.win.delete_data.name
+				)
 			);
 			
-			ui.add_space(1.);
+			ui.add_space(2.);
 			
 			ui.horizontal(|ui| {
 				ui.set_min_width(180.);
@@ -37,20 +44,22 @@ impl TimeSpent {
 			ui.add_space(5.);
 
 			ui.horizontal(|ui| {
-				if ui.button(egui::RichText::new("Delete").size(16.)).clicked() {
+				if ui.button("Delete").clicked() {
 					tracker::remove_entry(&self.win.delete_data.key);
 
 					self.refresh();
-					self.win.delete_window = false;
+					should_open = false;
 				}
 
 				ui.add_space(5.);
 
-				if ui.button(egui::RichText::new("Cancel").size(16.)).clicked() {
-					self.win.delete_window = false;
+				if ui.button("Cancel").clicked() {
+					should_open = false;
 				}
 			});
 
 		});
+
+		self.win.delete_window = delete_window && should_open;
 	}
 }

@@ -152,7 +152,7 @@ impl Tracker {
 }
 
 // Used for temporarily opening the db when it's locked by the tracker.
-fn remove_lock_und_open_db() -> sled::Db {
+fn unlock_und_open_db() -> sled::Db {
     let dirs = shared::Dirs::new();
 
     std::fs::File::create(&dirs.unlock_file).unwrap();
@@ -188,7 +188,7 @@ fn lock_and_close_db(db: sled::Db) {
 // }
 
 pub fn remove_entry(key: &str) {
-    let db = remove_lock_und_open_db();
+    let db = unlock_und_open_db();
     let entries = db.open_tree("entries").unwrap();
     let sessions = db.open_tree("sessions").unwrap();
 
@@ -209,7 +209,7 @@ pub fn remove_entry(key: &str) {
 }
 
 pub fn change_entry_name(key: &str, new_name: String) {
-    let db = remove_lock_und_open_db();
+    let db = unlock_und_open_db();
     let entries = db.open_tree("entries").unwrap();
 
     if let Ok(Some(data)) = entries.get(key.as_bytes()) {
@@ -250,7 +250,7 @@ fn categorize_into_days(sessions: Vec<(u64, u32)>) -> BTreeMap<String, u32> {
 }
 
 pub fn get_formatted_data() -> Vec<FormattedProcessEntry> {
-    let db: sled::Db = remove_lock_und_open_db();
+    let db: sled::Db = unlock_und_open_db();
 
     let entries = db.open_tree("entries").unwrap().iter()
         .filter_map(|entry| entry.ok())
