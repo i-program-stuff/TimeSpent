@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use std::{fs, path::Path};
-use serde_json::{json, Value as JsonValue};
+use serde_json::{Value as JsonValue};
 
 // ==CONFIG DOCUMENTATION==
 // "tickSpeed" Controls how often the application checks for the focused app

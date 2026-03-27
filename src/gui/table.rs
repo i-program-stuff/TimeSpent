@@ -6,49 +6,12 @@ use nucleo_matcher;
 use crate::{shared::{self, tracker::FormattedProcessEntry}, utils::format_time};
 use crate::TimeSpent;
 
+#[derive(Debug, Clone)]
 pub enum SortMethod {
 	Title,
 	TotalTime,
 	PerDayTime,
 	Search(String),
-}
-
-pub fn sort_data_by(method: SortMethod, data: &mut Vec<FormattedProcessEntry>) {
-    match method {
-        SortMethod::Title => {
-            data.sort_by(|a, b| a.name.cmp(&b.name));
-        },
-
-        SortMethod::TotalTime => {
-            data.sort_by(|a, b| b.total_time.cmp(&a.total_time));
-        },
-
-        SortMethod::PerDayTime => {
-            data.sort_by(|a, b| {
-                let val_a = a.per_day_time.last_key_value().map(|(_, &t)| t).unwrap_or(0);
-                let val_b = b.per_day_time.last_key_value().map(|(_, &t)| t).unwrap_or(0);
-                val_b.cmp(&val_a)
-            });
-        },
-
-		SortMethod::Search(query) => {
-			if query.is_empty() {
-                return;
-            }
-
-            let mut matcher = nucleo_matcher::Matcher::new(nucleo_matcher::Config::DEFAULT);
-            let pattern = nucleo_matcher::Utf32String::from(query);
-
-            data.sort_by_cached_key(|entry| {
-                let name_utf32 = nucleo_matcher::Utf32String::from(entry.name.as_str());
-                
-                let score = 
-					matcher.fuzzy_match(name_utf32.slice(..), pattern.slice(..)).unwrap_or(0);
-                
-                std::cmp::Reverse(score)
-            });
-		}
-    }
 }
 
 impl TimeSpent {
@@ -114,7 +77,7 @@ impl TimeSpent {
 							_ => unreachable!(),
 						};
 
-						sort_data_by(selected, &mut self.data);
+						self.sort_data_by(&selected);
 					}
 				});	
 			}
@@ -134,5 +97,47 @@ impl TimeSpent {
 				});
 			}
 		});
+	}
+
+	pub fn sort_data_by(&mut self, method: &SortMethod) {
+		match method {
+			SortMethod::Title => {
+				self.data.sort_by(|a, b| a.name.cmp(&b.name));
+			},
+
+			SortMethod::TotalTime => {
+				self.data.sort_by(|a, b| b.total_time.cmp(&a.total_time));
+			},
+
+			SortMethod::PerDayTime => {
+				let today = shared::get_todays_date();
+
+				self.data.sort_by(|a, b| {
+					let val_a = a.per_day_time.get(&today).unwrap_or(&0);
+					let val_b = b.per_day_time.get(&today).unwrap_or(&0);
+					val_b.cmp(val_a)
+				});
+			},
+
+			SortMethod::Search(query) => {
+				if query.is_empty() {
+					return;
+				}
+
+				let mut matcher = nucleo_matcher::Matcher::new(nucleo_matcher::Config::DEFAULT);
+				let pattern = nucleo_matcher::Utf32String::from(query.as_str());
+
+				self.data.sort_by_cached_key(|entry| {
+					let name_utf32 = nucleo_matcher::Utf32String::from(entry.name.as_str());
+					
+					let score = 
+						matcher.fuzzy_match(name_utf32.slice(..), pattern.slice(..)).unwrap_or(0);
+					
+					std::cmp::Reverse(score)
+				});
+			}
+		}
+
+		self.current_sort_method = method.clone();
 	}
 }

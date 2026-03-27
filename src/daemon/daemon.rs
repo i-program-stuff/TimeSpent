@@ -4,44 +4,10 @@
 mod shared;
 use shared::tracker;
 
+mod platform;
+
 use std::{thread, process, path::Path, time::Duration};
 use sysinfo::{SystemExt, PidExt, ProcessExt};
-
-#[cfg(target_os = "windows")]
-fn get_pid() -> u32 {
-	use winapi::um::winuser;
-
-	let mut pid: u32 = 0;
-
-	unsafe {
-		let hwnd = winuser::GetForegroundWindow();
-		winuser::GetWindowThreadProcessId(hwnd, &mut pid);
-	}
-
-	return pid
-}
-
-#[cfg(target_os = "linux")]
-fn get_pid() -> u32 {
-	let output_opt = process::Command::new("xdotool")
-					 .args(["getwindowfocus", "getwindowpid"])
-					 .output();
-	
-	if output_opt.is_err() {
-		log!("Failed to execute process");
-		log!("Is xdotool installed?");
-
-		process::exit(1);
-	}
-
-	let mut output = output_opt.unwrap().stdout;
-	output.pop(); // To remove \n from the end
-
-	let pid_string = String::from_utf8_lossy(&output);
-	let pid: u32 = pid_string.parse().unwrap_or(0);
-
-	return pid
-}
 
 fn get_focused_application_from_pid(system: &sysinfo::System, pid: u32) -> &Path {
 	if let Some(process) = system.process(sysinfo::Pid::from_u32(pid)) {
@@ -97,7 +63,7 @@ fn main() {
 			tracker = tracker::Tracker::new(flush_delta);
 		}
 
-		let pid = get_pid();
+		let pid = platform::get_pid();
 		if last_pid != pid {
 			system.refresh_processes_specifics(only_processes);
 			exe = get_focused_application_from_pid(&system, pid);

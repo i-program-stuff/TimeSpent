@@ -30,6 +30,14 @@ pub struct Window {
 }
 
 impl TimeSpent {
+	pub fn draw_windows(&mut self, ctx: &egui::Context) {
+		self.draw_raw_data_window(ctx);
+		self.draw_search_window(ctx);
+		self.draw_status_window(ctx);
+		self.draw_delete_window(ctx);
+		self.draw_rename_window(ctx);
+	}
+
 	pub fn draw_raw_data_window(&mut self, ctx: &egui::Context) {
 		egui::Window::new("Raw Data").open(&mut self.win.raw_data_window)
 		.vscroll(true).max_height(450.).show(ctx, |ui| {
@@ -40,25 +48,25 @@ impl TimeSpent {
 					.code_editor()
 					.interactive(false)
 					.desired_width(f32::INFINITY)
-					.desired_rows(25)
+					.desired_rows(30)
 			);
-
 		});
 	}
 
 	pub fn draw_search_window(&mut self, ctx: &egui::Context) {
-		egui::Window::new("🔍 Search").open(&mut self.win.search_window)
-		    .default_pos(egui::pos2(0.0, ctx.content_rect().max.y))
+		let mut is_open = self.win.search_window;
+		egui::Window::new("🔍 Search").open(&mut is_open)
+			.default_pos(egui::pos2(0.0, ctx.content_rect().max.y))
 			.pivot(egui::Align2::LEFT_BOTTOM).collapsible(false).auto_sized()
 			.show(ctx, |ui| {
 			if ui.add(
 				egui::TextEdit::singleline(&mut self.win.search_query).desired_width(220.0)
 			).changed() {
-				table::sort_data_by(
-					table::SortMethod::Search(self.win.search_query.clone()),
-					&mut self.data
+				self.sort_data_by(
+					&table::SortMethod::Search(self.win.search_query.clone()),
 				);
 			}
 		});
+		self.win.search_window = is_open;
 	}
 }

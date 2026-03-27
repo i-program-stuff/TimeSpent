@@ -266,7 +266,7 @@ pub fn get_formatted_data() -> Vec<FormattedProcessEntry> {
             })
             .sum::<u32>();
         
-        let per_day_time_as_timestamps = sessions.scan_prefix(entry.key.as_bytes())
+        let time_as_timestamps = sessions.scan_prefix(entry.key.as_bytes())
             .filter_map(|session| session.ok())
             .filter_map(|(key, value)| {
                 let key_str = String::from_utf8(key.to_vec()).ok()?;
@@ -278,7 +278,7 @@ pub fn get_formatted_data() -> Vec<FormattedProcessEntry> {
             })
             .collect::<Vec<_>>();
 
-        let per_day_time = categorize_into_days(per_day_time_as_timestamps);
+        let per_day_time = categorize_into_days(time_as_timestamps);
         
         if entry.key.is_empty() {
             return None

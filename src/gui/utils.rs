@@ -1,7 +1,10 @@
-use std::fs;
+use serde_json::json;
+
 use crate::{log, shared};
 
-pub fn get_hidden_processes() -> Vec<String> {
+use std::{fs, collections::HashSet};
+
+pub fn get_hidden_processes() -> HashSet<String> {
 	let hidden_processes_file = shared::Dirs::new().hidden_processes;
 
 	if !hidden_processes_file.exists() {
@@ -23,8 +26,20 @@ pub fn get_hidden_processes() -> Vec<String> {
 	};
 
     return content.as_array().unwrap().iter()
-        .map(|arr| arr.as_str().unwrap_or("").to_string())
+        .filter_map(|arr| Some(arr.as_str()?.to_string()))
         .collect()
+}
+
+pub fn save_hidden_processes(hidden_processes: &HashSet<String>) {
+	match std::fs::write(
+		shared::Dirs::new().hidden_processes,
+		json!(hidden_processes).to_string().as_bytes()
+	) {
+		Ok(_) => {},
+		Err(_) => {
+			crate::log!("hidden.json Couldn't be written to disk")
+		},
+	}
 }
 
 pub fn format_time(time_in_secs: f64) -> String {

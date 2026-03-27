@@ -24,6 +24,10 @@ winapi = "0.3.9"
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1.12"
 
+[target.'cfg(target_os = "linux")'.dependencies]
+xcb = "1.2.1"
+kdotool = "0.2.2"
+
 [dependencies]
 serde_json = "1.0.85"
 serde = { version = "1.0", features = ["derive"] }

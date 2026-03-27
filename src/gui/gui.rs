@@ -11,27 +11,37 @@ use crate::shared::tracker;
 
 use eframe::egui;
 
+use std::collections::HashSet;
+
 struct TimeSpent {
 	data: Vec<tracker::FormattedProcessEntry>,
 	win: windows::Window,
 
-	hidden_processes: Vec<String>,
+	hidden_processes: HashSet<String>,
 	show_hidden: bool,
+
+	current_sort_method: table::SortMethod,
 }
 
 impl TimeSpent {
+	const DEFAULT_SORT_METHOD: table::SortMethod = table::SortMethod::PerDayTime;
+
 	fn new() -> Self {
 		let hidden_processes = utils::get_hidden_processes();
-
-		let mut data = tracker::get_formatted_data();
-		table::sort_data_by(table::SortMethod::PerDayTime, &mut data);
-
+		let data = tracker::get_formatted_data();
 		let win = windows::Window::default();
 
-		return Self { 
-			data, win,
-			hidden_processes, show_hidden: false
-		}
+		let mut timespent = Self { 
+			data,
+			win,
+			hidden_processes, 
+			show_hidden: false,
+			current_sort_method: Self::DEFAULT_SORT_METHOD,
+		};
+
+		timespent.sort_data_by(&Self::DEFAULT_SORT_METHOD);
+
+		return timespent;
 	}
 
 	fn refresh(&mut self) {
@@ -39,6 +49,8 @@ impl TimeSpent {
 			utils::get_hidden_processes();
 
 		self.data = tracker::get_formatted_data();
+		
+		self.sort_data_by(&self.current_sort_method.clone());
 	}
 
 	fn draw_footerbar(&mut self, ctx: &egui::Context) {
@@ -97,15 +109,10 @@ impl eframe::App for TimeSpent {
 				})
 				.show(ui, |ui| {
 					self.draw_table(ui);
-
 					ui.separator();
 				});
 
-			self.draw_raw_data_window(ctx);
-			self.draw_status_window(ctx);
-			self.draw_search_window(ctx);
-			self.draw_delete_window(ctx);
-			self.draw_rename_window(ctx);
+				self.draw_windows(ctx);
 		});
 
 		self.draw_footerbar(ctx);

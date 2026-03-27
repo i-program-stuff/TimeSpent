@@ -1,7 +1,6 @@
-use serde_json::json;
-
-use crate::{TimeSpent, shared};
+use crate::TimeSpent;
 use crate::shared::tracker::FormattedProcessEntry;
+use crate::utils::save_hidden_processes;
 
 #[macro_export]
 // Open Window if the process is clicked for the first time
@@ -51,21 +50,14 @@ impl TimeSpent {
 			if ui.button(hide_button_text).clicked() {
 				
 				if hide_button_text == "Hide" { 
-					self.hidden_processes.push( data.name.clone() );
+					self.hidden_processes.insert(data.name.clone());
 				} else {
 					// Remove that process from the list of hidden processes
-					self.hidden_processes.retain( |x| x != &data.name );
+					self.hidden_processes.remove(&data.name);
 				}
 				
-				match std::fs::write(shared::Dirs::new().hidden_processes,
-					  json!(self.hidden_processes).to_string().as_bytes()) {
-	
-					Ok(_) => {},
-					Err(_) => {
-						crate::log!("hidden.json Couldn't be written to disk")
-					},
-				}
-	
+				save_hidden_processes(&self.hidden_processes);
+				
 				ui.close();
 			}
 	
