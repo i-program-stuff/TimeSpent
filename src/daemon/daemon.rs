@@ -36,8 +36,8 @@ fn main() {
 	
 	let mut system = sysinfo::System::new_with_specifics(r);
 
-	// If TimeSpentDaemon is already running, then stop execution
-	if system.processes_by_name("TimeSpentDaemon").count() > 1 {
+	// If timespent-daemon is already running, then stop execution
+	if system.processes_by_name("timespent-daemon").count() > 1 {
 		log!("The Daemon is already running");
 		process::exit(1);
 	}

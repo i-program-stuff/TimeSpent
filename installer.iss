@@ -46,28 +46,28 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 Source: "target\release\gui.exe"; DestName: "{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "target\release\daemon.exe"; DestName: "TimeSpentDaemon.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "target\release\daemon.exe"; DestName: "timespent-daemon.exe"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
-Name: "{userstartup}\TimeSpentDaemon"; Filename: "{app}\TimeSpentDaemon.exe"
+Name: "{userstartup}\timespent-daemon"; Filename: "{app}\timespent-daemon.exe"
 
 [Run]
-Filename: "{app}\TimeSpentDaemon.exe"; Description: "Launch Daemon"; Flags: nowait runasoriginaluser
+Filename: "{app}\timespent-daemon.exe"; Description: "Launch Daemon"; Flags: nowait runasoriginaluser
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
-Filename: "taskkill.exe"; Parameters: "/IM TimeSpentDaemon.exe /F"; RunOnceId: "KillDaemon"; Flags: runhidden
+Filename: "taskkill.exe"; Parameters: "/IM timespent-daemon.exe /F"; RunOnceId: "KillDaemon"; Flags: runhidden
 
 [code]
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   ResultCode: integer;
 begin
-  // Kill TimeSpentDaemon if it is running
-  Exec('taskkill.exe', '/IM TimeSpentDaemon.exe /F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  // Kill timespent-daemon if it is running
+  Exec('taskkill.exe', '/IM timespent-daemon.exe /F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   
   Result := '';
 end;
