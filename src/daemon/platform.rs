@@ -13,12 +13,12 @@ pub fn get_pid() -> u32 {
 }
 
 #[cfg(target_os = "linux")]
-pub fn get_pid() {
+pub fn get_pid() -> u32 {
 	if std::env::var("WAYLAND_DISPLAY").is_ok() {
-		return get_pid_wayland()
+		return get_pid_wayland();
 	}
 
-	return get_pid_x11()
+	return get_pid_x11();
 }
 
 #[cfg(target_os = "linux")]
@@ -32,19 +32,19 @@ fn get_pid_x11() -> u32 {
     let (conn, _) = match xcb::Connection::connect(None) {
         Ok(c) => c,
         Err(_) => {
-            log!("Failed to connect to X server");
+            crate::log!("Failed to connect to X server");
             return 0;
         }
     };
 
-    let focus_cookie = conn.send_request(&x::GetInputFocus {});
+    let focus_cookie = conn.send_request(&xcb::x::GetInputFocus {});
     let focus_reply = match conn.wait_for_reply(focus_cookie) {
         Ok(r) => r,
         Err(_) => return 0,
     };
     let window = focus_reply.focus();
 
-    let atom_cookie = conn.send_request(&x::InternAtom {
+    let atom_cookie = conn.send_request(&xcb::x::InternAtom {
         only_if_exists: true,
         name: b"_NET_WM_PID",
     });
@@ -54,11 +54,11 @@ fn get_pid_x11() -> u32 {
     };
     let pid_atom = atom_reply.atom();
 
-    let prop_cookie = conn.send_request(&x::GetProperty {
+    let prop_cookie = conn.send_request(&xcb::x::GetProperty {
         delete: false,
         window,
         property: pid_atom,
-        r#type: x::ATOM_CARDINAL,
+        r#type: xcb::x::ATOM_CARDINAL,
         long_offset: 0,
         long_length: 1,
     });
