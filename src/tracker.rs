@@ -6,7 +6,7 @@ use crate::{
     shared::{self, get_current_timestamp, get_date_from_timestamp}, 
 };
 
-use std::{path::PathBuf, collections::BTreeMap};
+use std::{collections::BTreeMap, path::PathBuf};
 
 pub type Timestamp = u64;
 
@@ -18,6 +18,9 @@ pub struct ProcessEntry {
 }
 
 impl ProcessEntry {
+    // using Option<T> would be better but NULL simplifies the logic 
+    // and windows itself gives out blank paths sometimes which 
+    // has to be covered by the code.
     pub const NULL: Self = Self {
         name: String::new(),
         key: String::new(),
@@ -137,6 +140,10 @@ impl Tracker {
         //     ":".as_bytes(), 
         //     &self.current_session.start_time.to_be_bytes(),
         // ].concat();
+
+        if self.current_process.key.is_empty() {
+            return;
+        }
 
         let key = format!("{}:{}", self.current_process.key, self.current_session.start_time);
 
