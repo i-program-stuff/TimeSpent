@@ -64,16 +64,16 @@ pub fn write_log(msg: String) {
 	}
 }
 
-pub fn get_current_timestamp() -> u64 {
-	return chrono::Utc::now().timestamp() as u64;
+pub fn get_current_timestamp() -> i64 {
+	return chrono::Utc::now().timestamp();
 }
 
-pub fn get_date_from_timestamp(timestamp: u64) -> String {
+pub fn get_date_from_timestamp(timestamp: i64) -> String {
 	format_timestamp_with(timestamp, "%Y/%m/%d")
 }
 
-pub fn format_timestamp_with(timestamp: u64, format: &str) -> String {
-	chrono::DateTime::from_timestamp(timestamp as i64, 0)
+pub fn format_timestamp_with(timestamp: i64, format: &str) -> String {
+	chrono::DateTime::from_timestamp(timestamp, 0)
 		.unwrap().with_timezone(&chrono::Local)
 		.format(format).to_string()
 }

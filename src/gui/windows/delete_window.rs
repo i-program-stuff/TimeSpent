@@ -45,7 +45,8 @@ impl TimeSpent {
 
 			ui.horizontal(|ui| {
 				if ui.button("Delete").clicked() {
-					tracker::remove_entry(&self.win.delete_data.key);
+					tracker::remove_entry(&self.win.delete_data.key)
+						.unwrap_or_else(|e| crate::log!("Couldn't delete entry ({}).", e));
 
 					self.refresh();
 					should_open = false;

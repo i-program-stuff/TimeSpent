@@ -28,7 +28,15 @@ impl TimeSpent {
 
 	fn new() -> Self {
 		let hidden_processes = utils::get_hidden_processes();
-		let data = tracker::get_formatted_data();
+		
+		let data = match tracker::get_formatted_data() {
+			Ok(data) => data,
+			Err(err) => {
+				log!("Failed to get formatted data: {}", err);
+				Vec::new()
+			}
+		};
+
 		let win = windows::Window::default();
 
 		let mut timespent = Self { 
@@ -48,7 +56,13 @@ impl TimeSpent {
 		self.hidden_processes = 
 			utils::get_hidden_processes();
 
-		self.data = tracker::get_formatted_data();
+		self.data = match tracker::get_formatted_data() {
+			Ok(data) => data,
+			Err(err) => {
+				log!("Failed to refresh formatted data: {}", err);
+				Vec::new()
+			}
+		};
 		
 		self.sort_data_by(&self.current_sort_method.clone());
 	}

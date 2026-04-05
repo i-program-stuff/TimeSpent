@@ -8,7 +8,7 @@ use crate::{
 
 use std::{collections::BTreeMap, path::PathBuf};
 
-pub type Timestamp = u64;
+pub type Timestamp = i64;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ProcessEntry {
@@ -46,7 +46,7 @@ impl ProcessEntry {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct Session {
     pub start_time: Timestamp,
     pub duration: u32,
@@ -74,7 +74,7 @@ pub struct Tracker {
 }
 
 impl Tracker {
-    pub fn new(flush_delta: u64) -> Self {
+    pub fn new(flush_delta: u64) -> Result<Self> {
         let processes_dir = shared::Dirs::new().processes_dir;
 
         let sled_config = sled::Config::new()
@@ -83,36 +83,35 @@ impl Tracker {
                             .mode(sled::Mode::HighThroughput)
                             .use_compression(true);
 
-        let db = sled_config.open().unwrap();
+        let db = sled_config.open()?;
 
-        return Self {
-            entries: db.open_tree("entries").unwrap(),
-            sessions: db.open_tree("sessions").unwrap(),
+        return Ok(Self {
+            entries: db.open_tree("entries")?,
+            sessions: db.open_tree("sessions")?,
 
             db,
 
             current_process: ProcessEntry::NULL,
             current_session: Session::new(get_current_timestamp()),
-        }
+        })
     }
 
-    pub fn add_time(&mut self, path: &PathBuf, time_spent: u64) {
+    pub fn add_time(&mut self, path: &PathBuf, time_spent: Timestamp) {
         let key = shared::get_file_name(path);
 
         // If the process is already being tracked, add the time to the current session
         if self.current_process.key == key {
             // do nothing
 
-        } else if self.entries.contains_key(key.as_bytes()).unwrap() {
+        } else if self.entries.contains_key(key.as_bytes()).unwrap_or(false) {
             self.write_current_session();
 
-            if let Ok(Some(data)) = self.entries.get(key.as_bytes()) {
-                if let Some(process_entry) = ProcessEntry::deserialize(&data) {
-                    self.current_process = process_entry;
-                }
+            if let Ok(Some(data)) = self.entries.get(key.as_bytes())
+                && let Some(process_entry) = ProcessEntry::deserialize(&data)
+            {
+                self.current_process = process_entry;
+                self.current_session = Session::new(get_current_timestamp());
             }
-            
-            self.current_session = Session::new(get_current_timestamp());
 
         } else {
             self.write_current_session();
@@ -158,66 +157,117 @@ impl Tracker {
     }
 }
 
+#[derive(Debug)]
+pub struct TrackerError {
+    pub source: Box<dyn std::error::Error>,
+}
+
+impl TrackerError {
+    pub fn new_from_error(source: Box<dyn std::error::Error>) -> Self {
+        TrackerError { source }
+    }
+    
+    pub fn new(message: &str) -> Self {
+        TrackerError { 
+            source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, message)) 
+        }
+    }
+}
+
+impl std::fmt::Display for TrackerError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.source)
+    }
+}
+
+impl std::error::Error for TrackerError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(self.source.as_ref())
+    }
+}
+
+impl From<sled::Error> for TrackerError {
+    fn from(source: sled::Error) -> Self {
+        TrackerError { source: Box::new(source) }
+    }
+}
+
+impl From<std::io::Error> for TrackerError {
+    fn from(source: std::io::Error) -> Self {
+        TrackerError { source: Box::new(source) }
+    }
+}
+
+impl From<&str> for TrackerError {
+    fn from(source: &str) -> Self {
+        TrackerError::new(source)
+    }
+}
+
+type Result<T> = std::result::Result<T, TrackerError>;
+
 // Used for temporarily opening the db when it's locked by the tracker.
-fn unlock_und_open_db() -> sled::Db {
+fn unlock_und_open_db() -> Result<sled::Db> {
     let dirs = shared::Dirs::new();
 
-    std::fs::File::create(&dirs.unlock_file).unwrap();
+    std::fs::File::create(&dirs.unlock_file)?;
 
     let sled_config = sled::Config::new()
                     .path(dirs.processes_dir)
                     .flush_every_ms(None)
                     .use_compression(true);
 
-    loop {
+    Ok(loop {
         match sled_config.open() {
             Ok(opened_db) => break opened_db,
             Err(_) => {
                 std::thread::sleep(std::time::Duration::from_millis(50));
             }
         }
-    }
+    })
 }
 
-fn lock_and_close_db(db: sled::Db) {
+fn lock_and_close_db(db: sled::Db) -> Result<()> {
     drop(db);
-    std::fs::remove_file(&shared::Dirs::new().unlock_file).unwrap();
+    std::fs::remove_file(&shared::Dirs::new().unlock_file)?;
+    Ok(())
 }
 
-// fn apply_batch_to_entries(batch: sled::Batch) {
-//     let db = remove_lock_und_open_db();
-//     let entries = db.open_tree("entries").unwrap();
+// fn apply_batch_to_entries(batch: sled::Batch) -> Result<()> {
+//     let db = remove_lock_und_open_db()?;
+//     let entries = db.open_tree("entries")?;
 
-//     entries.apply_batch(batch).unwrap();
-//     db.flush().unwrap();
+//     entries.apply_batch(batch)?;
+//     db.flush()?;
 
-//     lock_and_close_db(db);
+//     lock_and_close_db(db)?;
 // }
 
-pub fn remove_entry(key: &str) {
-    let db = unlock_und_open_db();
-    let entries = db.open_tree("entries").unwrap();
-    let sessions = db.open_tree("sessions").unwrap();
+pub fn remove_entry(key: &str) -> Result<()> {
+    let db = unlock_und_open_db()?;
+    let entries = db.open_tree("entries")?;
+    let sessions = db.open_tree("sessions")?;
 
-    entries.remove(key.as_bytes()).unwrap();
+    entries.remove(key.as_bytes())?;
 
     let prefix = format!("{}:", key);
-    let keys_to_remove: Vec<_> = sessions.scan_prefix(prefix.as_bytes())
+    let keys_to_remove = sessions.scan_prefix(prefix.as_bytes())
         .filter_map(|entry| entry.ok())
-        .map(|(key, _)| key)
-        .collect();
+        .map(|(key, _)| key);
 
     for key in keys_to_remove {
-        sessions.remove(key).unwrap();
+        sessions.remove(key)?;
     }
 
-    db.flush().unwrap();
-    lock_and_close_db(db);
+    db.flush()?;
+    lock_and_close_db(db)?;
+
+    Ok(())
 }
 
-pub fn change_entry_name(key: &str, new_name: String) {
-    let db = unlock_und_open_db();
-    let entries = db.open_tree("entries").unwrap();
+pub fn change_entry_name(key: &str, new_name: String) -> Result<()>{
+    let db = unlock_und_open_db()?;
+    let entries = db.open_tree("entries")?;
 
     if let Ok(Some(data)) = entries.get(key.as_bytes()) {
         if let Some(mut process_entry) = ProcessEntry::deserialize(&data) {
@@ -229,8 +279,9 @@ pub fn change_entry_name(key: &str, new_name: String) {
         }
     }
 
-    db.flush().unwrap();
-    lock_and_close_db(db);
+    db.flush()?;
+    lock_and_close_db(db)?;
+    Ok(())
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -246,7 +297,7 @@ pub struct FormattedProcessEntry {
 }
 
 // tuple.0 is timestamp and tuple.1 is time spent in seconds
-fn categorize_into_days(sessions: Vec<(u64, u32)>) -> BTreeMap<String, u32> {
+fn categorize_into_days(sessions: Vec<(i64, u32)>) -> BTreeMap<String, u32> {
     let mut categorized: BTreeMap<String, u32> = BTreeMap::new();
 
     for (date, time) in sessions {
@@ -256,14 +307,14 @@ fn categorize_into_days(sessions: Vec<(u64, u32)>) -> BTreeMap<String, u32> {
     categorized
 }
 
-pub fn get_formatted_data() -> Vec<FormattedProcessEntry> {
-    let db: sled::Db = unlock_und_open_db();
+pub fn get_formatted_data() -> Result<Vec<FormattedProcessEntry>> {
+    let db: sled::Db = unlock_und_open_db()?;
 
-    let entries = db.open_tree("entries").unwrap().iter()
+    let entries = db.open_tree("entries")?.iter()
         .filter_map(|entry| entry.ok())
         .filter_map(|(_key, value)| ProcessEntry::deserialize(&value));
 
-    let sessions = db.open_tree("sessions").unwrap();
+    let sessions = db.open_tree("sessions")?;
 
     let formatted_data = entries.filter_map(|entry| {
         let total_time = sessions.scan_prefix(entry.key.as_bytes())
@@ -281,7 +332,7 @@ pub fn get_formatted_data() -> Vec<FormattedProcessEntry> {
 
                 let time = u32::from_le_bytes(value.as_ref().try_into().ok()?);
 
-                Some((timestamp_str.parse::<u64>().ok()?, time))
+                Some((timestamp_str.parse::<i64>().ok()?, time))
             })
             .collect::<Vec<_>>();
 
@@ -300,7 +351,7 @@ pub fn get_formatted_data() -> Vec<FormattedProcessEntry> {
         })
     }).collect();
 
-    lock_and_close_db(db);
+    lock_and_close_db(db)?;
 
-    return formatted_data;
+    return Ok(formatted_data);
 }

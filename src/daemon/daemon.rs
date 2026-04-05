@@ -44,7 +44,13 @@ fn main() {
 
 	let flush_delta = 10000;
 
-	let mut tracker = tracker::Tracker::new(flush_delta);
+	let tracker_error_handling = |e: tracker::TrackerError| {
+		log!("Couldn't initialize Tracker. ({})", e);
+		process::exit(1);
+	};
+
+	let mut tracker = tracker::Tracker::new(flush_delta)
+						.unwrap_or_else(tracker_error_handling);
 
 	let poll_interval = Duration::from_secs(1);
 
@@ -60,7 +66,8 @@ fn main() {
 				thread::sleep(poll_interval);
 			}
 
-			tracker = tracker::Tracker::new(flush_delta);
+			tracker = tracker::Tracker::new(flush_delta)
+						.unwrap_or_else(tracker_error_handling);
 		}
 
 		let pid = platform::get_pid();
@@ -70,7 +77,7 @@ fn main() {
 			last_pid = pid;
 		}
 
-		tracker.add_time(&exe.to_path_buf(), poll_interval.as_secs());
+		tracker.add_time(&exe.to_path_buf(), poll_interval.as_secs() as i64);
 
 		thread::sleep(poll_interval);
 	}

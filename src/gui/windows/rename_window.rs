@@ -39,8 +39,8 @@ impl TimeSpent {
 				if ui.button("Rename").clicked() && self.win.rename_error.is_empty() {
 					tracker::change_entry_name(
 						&self.win.rename_data.key, self.win.rename_to.clone()
-					);
-
+					).unwrap_or_else(|e| crate::log!("Couldn't rename entry ({}).", e));
+					
 					self.refresh();
 					self.win.rename_to = String::new();
 
